@@ -9,7 +9,6 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using CacheCow.Common;
-using CacheCow.Common.Helpers;
 using CacheCow.Common.Http;
 
 namespace CacheCow.Server
@@ -337,7 +336,6 @@ namespace CacheCow.Server
 			}
 		}
 
-
 		protected virtual void BuildRules()
 		{
 			RequestInterceptionRules = new Dictionary<string, Func<HttpRequestMessage, Task<HttpResponseMessage>>>();
@@ -362,7 +360,7 @@ namespace CacheCow.Server
 					return null; // no etag
 
 				if (matchTags.Count > 0 && noneMatchTags.Count > 0) // both if-match and if-none-match exist
-					return new HttpResponseMessage(HttpStatusCode.BadRequest).ToTask();
+					return CachedResponseMessageItemStore.BadRequestResponseMessage;
 
 				var isNoneMatch = noneMatchTags.Count > 0;
 				var etags = isNoneMatch ? noneMatchTags : matchTags;
@@ -402,7 +400,8 @@ namespace CacheCow.Server
 					return null; // no etag
 
 				if (ifModifiedSince != null && ifUnmodifiedSince != null) // both exist
-					return new HttpResponseMessage(HttpStatusCode.BadRequest).ToTask();
+					return CachedResponseMessageItemStore.BadRequestResponseMessage;
+
 				bool ifModified = (ifUnmodifiedSince == null);
 				DateTimeOffset modifiedInQuestion = ifModified ? ifModifiedSince.Value : ifUnmodifiedSince.Value;
 
@@ -451,7 +450,7 @@ namespace CacheCow.Server
 					isModified = actualEtag.LastModified > modifiedInQuestion;
 				}
 
-				return isModified ? new HttpResponseMessage(HttpStatusCode.PreconditionFailed).ToTask()
+                return isModified ? CachedResponseMessageItemStore.PreconditionFailedResponseMessage
 					: null;
 
 			};
@@ -482,11 +481,21 @@ namespace CacheCow.Server
 					}
 				}
 
-				return matchFound ? null
-					: new HttpResponseMessage(HttpStatusCode.PreconditionFailed).ToTask();
+                return matchFound ? null
+                    : CachedResponseMessageItemStore.PreconditionFailedResponseMessage;
 
 			};
 		}
 
+        private static class CachedResponseMessageItemStore {
+
+            internal static Task<HttpResponseMessage> PreconditionFailedResponseMessage = GetResponseMessage(HttpStatusCode.PreconditionFailed);
+            internal static Task<HttpResponseMessage> BadRequestResponseMessage = GetResponseMessage(HttpStatusCode.BadRequest);
+
+            private static Task<HttpResponseMessage> GetResponseMessage(HttpStatusCode status) {
+
+                return new HttpResponseMessage(status).ToTask();
+            }
+        }
 	}
 }

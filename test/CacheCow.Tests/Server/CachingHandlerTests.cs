@@ -6,7 +6,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using CacheCow.Common;
-using CacheCow.Common.Helpers;
 using CacheCow.Server;
 using NUnit.Framework;
 using Rhino.Mocks;

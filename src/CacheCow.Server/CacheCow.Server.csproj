@@ -54,8 +54,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Common\BasicExtensions.cs">
+      <Link>Common\BasicExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Common\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Common\HttpResponseMessageExtensions.cs">
+      <Link>Common\HttpResponseMessageExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Common\TaskHelpers.cs">
+      <Link>Common\TaskHelpers.cs</Link>
     </Compile>
     <Compile Include="CachingHandler.cs" />
     <Compile Include="InMemoryEntityTagStore.cs" />
