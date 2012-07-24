@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{CF657B
 		.nuget\nuget.exe = .nuget\nuget.exe
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheCow.Server.EntityTagStore.TableStorage", "src\CacheCow.Server.EntityTagStore.TableStorage\CacheCow.Server.EntityTagStore.TableStorage.csproj", "{FB0CB12A-1707-4A77-9EF8-501EA3674539}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{B67727F4-5B65-41D0-8D26-8D1C32CEA63D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B67727F4-5B65-41D0-8D26-8D1C32CEA63D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B67727F4-5B65-41D0-8D26-8D1C32CEA63D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB0CB12A-1707-4A77-9EF8-501EA3674539}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB0CB12A-1707-4A77-9EF8-501EA3674539}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB0CB12A-1707-4A77-9EF8-501EA3674539}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB0CB12A-1707-4A77-9EF8-501EA3674539}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -70,5 +76,6 @@ Global
 		{943325CB-7189-42FE-9DA4-E513DB3E0E87} = {B1901128-F84A-46CE-B8FD-E863465F94C2}
 		{AA8B71E2-1E28-457E-B4E0-7D493CBE69D3} = {141CEBF7-F872-4181-8B16-1E0FAE517D59}
 		{B67727F4-5B65-41D0-8D26-8D1C32CEA63D} = {B1901128-F84A-46CE-B8FD-E863465F94C2}
+		{FB0CB12A-1707-4A77-9EF8-501EA3674539} = {B1901128-F84A-46CE-B8FD-E863465F94C2}
 	EndGlobalSection
 EndGlobal
