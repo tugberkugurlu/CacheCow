@@ -97,7 +97,6 @@ namespace CacheCow.Server.EntityTagStore.Redis {
                 if (setTask.Status == TaskStatus.RanToCompletion) {
 
                     AddRoutePattern(key.ToString(), key.RoutePattern);
-                    return;
                 }
             }
             else {
