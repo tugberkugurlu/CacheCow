@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using BookSleeve;
 using CacheCow.Common;
-using CacheCow.Server.EntityTagStore.Redis.Extensions;
 
 namespace CacheCow.Server.EntityTagStore.Redis {
 
@@ -16,7 +15,8 @@ namespace CacheCow.Server.EntityTagStore.Redis {
         //      points async should be the solution.
         //      The methods which has void return expression has been implemented as fire-and-forget.
 
-        private const int _db = 6;
+        private const char _delimiter = '$';
+        private readonly int _db;
         private static Lazy<RedisConnection> _redisConn;
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace CacheCow.Server.EntityTagStore.Redis {
         /// <param name="host"></param>
         /// <param name="port"></param>
         /// <param name="password"></param>
-        public RedisEntityTagStore(string host, int port = 6379, string password = null) {
+        public RedisEntityTagStore(string host, int database, int port = 6379, string password = null) {
             
             if (string.IsNullOrEmpty(host)) {
                 throw new ArgumentNullException("server");
@@ -41,6 +41,8 @@ namespace CacheCow.Server.EntityTagStore.Redis {
                 conn.Open().Wait();
                 return conn;
             });
+
+            _db = database;
         }
 
         /// <summary>
@@ -51,14 +53,23 @@ namespace CacheCow.Server.EntityTagStore.Redis {
         /// <returns></returns>
         public bool TryGetValue(CacheKey key, out TimedEntityTagHeaderValue eTag) {
 
+            if (key == null) {
+                throw new ArgumentNullException("key");
+            }
+
             eTag = null;
 
-            var cEntityBytes = _redisConn.Value.Strings.Get(_db, key.ToString()).Result;
-            if (cEntityBytes == null) {
+            var resultValue = _redisConn.Value.Strings.GetString(_db, key.ToString()).Result;
+
+            if (string.IsNullOrEmpty(resultValue)) {
                 return false;
             }
 
-            eTag = cEntityBytes.ToCacheEntity().ToTimedEntityTagHeaderValue();
+            var values = resultValue.Split(_delimiter);
+            eTag = new TimedEntityTagHeaderValue(values[0]) {
+                LastModified = DateTimeOffset.Parse(values[1])
+            };
+
             return true;
         }
 
@@ -69,16 +80,44 @@ namespace CacheCow.Server.EntityTagStore.Redis {
         /// <param name="eTag"></param>
         public void AddOrUpdate(CacheKey key, TimedEntityTagHeaderValue eTag) {
 
-            //TODO: Add the CacheKey to the RoutePattern set based on the RoutePattern as key
-            var cEntityBytes = new CacheEntity {    
-                CacheKeyHash = key.Hash,
-                RoutePattern = key.RoutePattern,
-                ETag = eTag.Tag,
-                LastModified = eTag.LastModified
-            }.ToByteArray();
+            if (key == null) {
+                throw new ArgumentNullException("key");
+            }
 
-            //fire-and-forget
-            _redisConn.Value.Strings.Set(_db, key.ToString(), cEntityBytes);
+            if (eTag == null) {
+                throw new ArgumentNullException("eTag");
+            }
+
+            var finalValue = string.Format("{0}{1}{2}", eTag.Tag, _delimiter, eTag.LastModified.ToString());
+
+            var setTask = _redisConn.Value.Strings.Set(_db, key.ToString(), finalValue);
+
+            if (setTask.IsCompleted) {
+
+                if (setTask.Status == TaskStatus.RanToCompletion) {
+
+                    AddRoutePattern(key.ToString(), key.RoutePattern);
+                    return;
+                }
+            }
+            else {
+
+                setTask.ContinueWith(task => {
+
+                    if (task.Status == TaskStatus.RanToCompletion) {
+
+                        AddRoutePattern(key.ToString(), key.RoutePattern);
+                    }
+                    else if (task.Status == TaskStatus.Canceled) {
+
+                        //Swallow
+                    }
+                    else if (task.Status == TaskStatus.Faulted) {
+
+                        //Swallow
+                    }
+                });
+            }
         }
 
         /// <summary>
@@ -122,34 +161,41 @@ namespace CacheCow.Server.EntityTagStore.Redis {
         /// </summary>
         public void Clear() {
 
+            //NOTE: This finds all the keys inside the redis databse.
+            //      If the user uses this database with something else,
+            //      we would be deleting all of those recods as well and
+            //      this is obviously bad. The solution would be to stick a perfix
+            //      for each key and then do the search against that. 
+            //      E.g: CacheCow::{keyName}
+            //      So that we could do a seach against that as below:
+            //      _redisConn.Value.Keys.Find(_db, "CacheCow::*")
             var findKeysTask = _redisConn.Value.Keys.Find(_db, "*");
 
             if (findKeysTask.IsCompleted) {
-                ClearAll(findKeysTask.Result);
-            }
-            else if (findKeysTask.IsCanceled) { 
 
-                //Swallow
-            }
-            else if (findKeysTask.IsFaulted) {
+                if (findKeysTask.Status == TaskStatus.RanToCompletion) {
 
-                //Swallow
-            }
-
-            findKeysTask.ContinueWith(task => {
-
-                if (task.Status == TaskStatus.RanToCompletion) {
                     ClearAll(findKeysTask.Result);
                 }
-                else if (task.Status == TaskStatus.Canceled) {
+            }
+            else {
 
-                    //Swallow
-                }
-                else if (task.Status == TaskStatus.Faulted) {
+                findKeysTask.ContinueWith(task => {
 
-                    //Swallow
-                }
-            });
+                    if (task.Status == TaskStatus.RanToCompletion) {
+
+                        ClearAll(findKeysTask.Result);
+                    }
+                    else if (task.Status == TaskStatus.Canceled) {
+
+                        //Swallow
+                    }
+                    else if (task.Status == TaskStatus.Faulted) {
+
+                        //Swallow
+                    }
+                });
+            }
         }
 
         private void ClearAll(string[] keys) {
@@ -159,6 +205,11 @@ namespace CacheCow.Server.EntityTagStore.Redis {
                 //Fire and forget
                 _redisConn.Value.Keys.Remove(_db, keys[i]);
             }
+        }
+
+        private Task<bool> AddRoutePattern(string cacheKey, string routePattern) {
+
+            return _redisConn.Value.Sets.Add(_db, routePattern, cacheKey);
         }
     }
 }
