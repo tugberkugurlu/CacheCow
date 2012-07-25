@@ -60,6 +60,7 @@
     <Compile Include="..\Common\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="CacheEntity.cs" />
     <Compile Include="CacheKey.cs" />
     <Compile Include="Helpers\BasicExtensions.cs" />
     <Compile Include="Helpers\HttpHeadersExtensions.cs" />
